@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Activity,
   Bell,
   ChevronLeft,
   ChevronRight,
@@ -12,6 +11,7 @@ import {
   ShieldPlus,
   UserRound,
 } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +19,10 @@ const links = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/submit-report', label: 'Submit Report', icon: FilePlus2 },
   { to: '/ai-alerts', label: 'AI Alerts', icon: Bell },
-  { to: '/rewards', label: 'Rewards & Certificates', icon: Gift },
+
+  // UPDATED HERE
+  { to: '/rewards', label: 'Rewards', icon: Gift },
+
   { to: '/profile', label: 'Profile', icon: UserRound },
 ]
 
@@ -44,10 +47,16 @@ export function Sidebar({
         <div className="flex size-11 items-center justify-center rounded-2xl bg-ms-mint/90 text-ms-ink shadow-inner shadow-white/60">
           <ShieldPlus className="size-6 text-[#2f7d56]" />
         </div>
+
         {!collapsed && (
           <div className="text-left leading-tight">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ms-muted">SafeDx</p>
-            <p className="text-base font-semibold text-ms-ink">MediShield AI</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ms-muted">
+              SafeDx
+            </p>
+
+            <p className="text-base font-semibold text-ms-ink">
+              MediShield AI
+            </p>
           </div>
         )}
       </div>
@@ -67,16 +76,24 @@ export function Sidebar({
             }
           >
             <Icon className="size-[18px] shrink-0" />
+
             {!collapsed && <span>{label}</span>}
           </NavLink>
         ))}
       </nav>
 
       <div className="border-t border-ms-accent/25 p-3">
-        <Button variant="outline" className="w-full justify-start gap-2" type="button" onClick={onLogout}>
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2"
+          type="button"
+          onClick={onLogout}
+        >
           <LogOut className="size-4" />
+
           {!collapsed && 'Logout'}
         </Button>
+
         <Button
           variant="ghost"
           size="icon"
@@ -85,20 +102,12 @@ export function Sidebar({
           onClick={onToggle}
           aria-label="Toggle sidebar"
         >
-          {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          {collapsed ? (
+            <ChevronRight className="size-4" />
+          ) : (
+            <ChevronLeft className="size-4" />
+          )}
         </Button>
-      </div>
-
-      <div className="pointer-events-none absolute inset-x-6 bottom-24 hidden text-[11px] text-ms-muted/80 lg:block">
-        {!collapsed && (
-          <div className="glass-panel rounded-xl px-3 py-2">
-            <div className="flex items-center gap-2 font-semibold text-ms-ink">
-              <Activity className="size-4 text-[#2f7d56]" />
-              Confidential Mode
-            </div>
-            <p className="mt-1 leading-snug">Reports remain anonymized across the clinical learning mesh.</p>
-          </div>
-        )}
       </div>
     </motion.aside>
   )
