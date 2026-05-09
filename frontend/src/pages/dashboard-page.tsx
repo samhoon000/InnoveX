@@ -1,20 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import { Download, Filter, RefreshCw, Search } from 'lucide-react'
+import { Download, Filter, Search } from 'lucide-react'
 import { toast } from 'sonner'
+
 import { apiFetch } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -26,8 +18,6 @@ type DashboardPayload = {
     certificatesEarned: number
     openAlerts: number
   }
-  safetyTrend: { date: string; safe: number; flagged: number }[]
-  topInsights: { anonymousDoctorName: string; aiAnalysis?: { warning?: string }; createdAt: string }[]
 }
 
 type FeedPayload = {
@@ -39,7 +29,10 @@ type FeedPayload = {
     diagnosis: string
     patientCondition: string
     createdAt: string
-    aiAnalysis?: { isCorrect?: boolean; warning?: string }
+    aiAnalysis?: {
+      isCorrect?: boolean
+      warning?: string
+    }
   }[]
   page: number
   limit: number
@@ -62,7 +55,9 @@ export function DashboardPage() {
     const handle = window.setTimeout(() => {
       void loadFeed()
     }, 350)
+
     return () => window.clearTimeout(handle)
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, page])
 
@@ -77,9 +72,18 @@ export function DashboardPage() {
 
   async function loadFeed() {
     setLoading(true)
+
     try {
-      const params = new URLSearchParams({ page: String(page), limit: '6', q: query })
-      const res = await apiFetch<FeedPayload>(`/api/doctor/reports?${params.toString()}`)
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: '6',
+        q: query,
+      })
+
+      const res = await apiFetch<FeedPayload>(
+        `/api/doctor/reports?${params.toString()}`
+      )
+
       setFeed(res)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Unable to load reports')
@@ -88,193 +92,234 @@ export function DashboardPage() {
     }
   }
 
-  const chartData = useMemo(() => dash?.safetyTrend ?? [], [dash])
-
   async function exportReports() {
     try {
       const rows = await apiFetch<unknown[]>('/api/doctor/reports/export')
-      const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
+
+      const blob = new Blob([JSON.stringify(rows, null, 2)], {
+        type: 'application/json',
+      })
+
       const url = URL.createObjectURL(blob)
+
       const a = document.createElement('a')
       a.href = url
       a.download = 'my-reports.json'
       a.click()
+
       URL.revokeObjectURL(url)
+
       toast.success('Export downloaded.')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Export failed')
+      toast.error(err instanceof Error ? err.message : 'Unable to export reports')
     }
   }
 
+  const statCards = [
+    {
+      label: 'Reports Submitted',
+      value: dash?.overview.reportsSubmitted ?? '--',
+    },
+    {
+      label: 'AI Alerts Received',
+      value: dash?.overview.aiAlertsReceived ?? '--',
+    },
+    {
+      label: 'Trust Score',
+      value: dash?.overview.patientSafetyTrustScore ?? '--',
+    },
+    {
+      label: 'Certificates Earned',
+      value: dash?.overview.certificatesEarned ?? '--',
+    },
+  ]
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {(dash
-          ? [
-              { label: 'Reports Submitted', value: dash.overview.reportsSubmitted },
-              { label: 'AI Alerts Received', value: dash.overview.aiAlertsReceived },
-              { label: 'Patient Safety Trust Score', value: dash.overview.patientSafetyTrustScore },
-              { label: 'Certificates Earned', value: dash.overview.certificatesEarned },
-            ]
-          : Array.from({ length: 4 }).map((_, i) => ({ label: `metric-${i}`, value: null }))
-        ).map((card, idx) => (
-          <motion.div key={dash ? card.label : `metric-skel-${idx}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
-            <Card className="border-ms-accent/35 bg-gradient-to-br from-white/90 to-ms-panel/70">
-              <CardHeader className="pb-2">
-                <CardDescription>{dash ? card.label : <Skeleton className="h-4 w-32" />}</CardDescription>
-                <CardTitle className="text-3xl">
-                  {dash ? (
-                    card.value
-                  ) : (
-                    <Skeleton className="mt-2 h-9 w-16" />
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-ms-muted">
-                {dash && idx === 1 && (
-                  <Badge variant="outline">{dash.overview.openAlerts} active investigations</Badge>
-                )}
+        {statCards.map((card) => (
+          <motion.div
+            key={card.label}
+            layout
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border border-ms-accent/35 bg-white/80">
+              <CardContent className="p-5">
+                <p className="text-sm text-ms-muted">{card.label}</p>
+
+                <div className="mt-3 flex items-end justify-between">
+                  <h3 className="text-3xl font-semibold text-ms-ink">
+                    {card.value}
+                  </h3>
+
+                  <div className="rounded-xl bg-ms-mint/60 px-3 py-1 text-xs font-medium text-[#2f7d56]">
+                    Active
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
-        <Card className="border-ms-accent/35 lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Safety signal trend</CardTitle>
-              <CardDescription>Aggregated anonymized reconciliation outcomes · trailing 30 days</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" type="button" onClick={() => void loadDash()}>
-              <RefreshCw className="size-4" />
-              Refresh
-            </Button>
-          </CardHeader>
-          <CardContent className="h-[280px]">
-            {dash ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="safe" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6bbd8e" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#6bbd8e" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="flagged" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="4 8" stroke="#d9f3e4" />
-                  <XAxis dataKey="date" tick={{ fill: '#4a6358', fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fill: '#4a6358', fontSize: 11 }} />
-                  <Tooltip contentStyle={{ borderRadius: 12, borderColor: '#d9f3e4' }} />
-                  <Area type="monotone" dataKey="safe" stroke="#2f7d56" fillOpacity={1} fill="url(#safe)" />
-                  <Area type="monotone" dataKey="flagged" stroke="#ea580c" fillOpacity={1} fill="url(#flagged)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <Skeleton className="h-full w-full" />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-ms-accent/35">
-          <CardHeader>
-            <CardTitle>Top learning insights</CardTitle>
-            <CardDescription>Latest AI reconciliation narratives without identifiers.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {(dash?.topInsights ?? []).map((insight) => (
-              <div key={insight.createdAt + insight.anonymousDoctorName} className="rounded-xl bg-white/70 p-3 shadow-inner shadow-white/40">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ms-muted">{insight.anonymousDoctorName}</p>
-                <p className="mt-2 text-sm text-ms-ink">{insight.aiAnalysis?.warning}</p>
-              </div>
-            ))}
-            {!dash && (
-              <>
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <section className="space-y-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-ms-ink">Community anonymized reports</h3>
-            <p className="text-sm text-ms-muted">Structured peer learning feed · PHI-safe narratives only.</p>
+            <h3 className="text-2xl font-semibold text-ms-ink">
+              Community anonymized reports
+            </h3>
+
+            <p className="mt-1 text-sm text-ms-muted">
+              Structured peer-learning feed with identity-safe clinical narratives.
+            </p>
           </div>
+
           <div className="flex flex-wrap gap-2">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-ms-muted" />
-              <Input className="pl-9 md:w-72" placeholder="Search symptoms, medicines…" value={query} onChange={(e) => { setPage(1); setQuery(e.target.value); }} />
+
+              <Input
+                className="pl-9 md:w-72"
+                placeholder="Search symptoms, medicines..."
+                value={query}
+                onChange={(e) => {
+                  setPage(1)
+                  setQuery(e.target.value)
+                }}
+              />
             </div>
-            <Button variant="outline" type="button" onClick={() => void loadFeed()}>
+
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => void loadFeed()}
+            >
               <Filter className="size-4" />
               Apply filters
             </Button>
-            <Button variant="secondary" type="button" onClick={() => void exportReports()}>
+
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => void exportReports()}
+            >
               <Download className="size-4" />
-              Export my reports
+              Export reports
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-2">
           {loading &&
             Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-52 w-full" />
+              <Skeleton key={i} className="h-56 w-full rounded-2xl" />
             ))}
 
           {!loading &&
             feed?.items.map((item) => (
-              <motion.article key={item._id} layout className="rounded-2xl border border-ms-accent/35 bg-white/80 p-5 shadow-lg shadow-ms-accent/10">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-[#2f7d56]">{item.anonymousDoctorName}</p>
-                  <Badge variant={item.aiAnalysis?.isCorrect ? 'default' : 'critical'}>
-                    {item.aiAnalysis?.isCorrect ? 'Validated' : 'Review signal'}
+              <motion.article
+                key={item._id}
+                layout
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-3xl border border-ms-accent/30 bg-white/85 p-6 shadow-lg shadow-ms-accent/10"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold tracking-wide text-[#2f7d56]">
+                      {item.anonymousDoctorName}
+                    </p>
+
+                    <p className="mt-1 text-xs text-ms-muted">
+                      {new Date(item.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <Badge
+                    variant={
+                      item.aiAnalysis?.isCorrect
+                        ? 'default'
+                        : 'critical'
+                    }
+                  >
+                    {item.aiAnalysis?.isCorrect
+                      ? 'Validated'
+                      : 'AI Review Signal'}
                   </Badge>
                 </div>
-                <div className="mt-4 space-y-2 text-sm">
+
+                <div className="mt-5 space-y-3 text-sm leading-relaxed">
                   <p>
-                    <span className="font-semibold text-ms-muted">Symptoms · </span>
+                    <span className="font-semibold text-ms-muted">
+                      Symptoms ·{' '}
+                    </span>
                     {item.symptoms}
                   </p>
+
                   <p>
-                    <span className="font-semibold text-ms-muted">Medicine prescribed · </span>
+                    <span className="font-semibold text-ms-muted">
+                      Medicine prescribed ·{' '}
+                    </span>
                     {item.medicines}
                   </p>
+
                   <p>
-                    <span className="font-semibold text-ms-muted">Outcome / diagnosis notes · </span>
+                    <span className="font-semibold text-ms-muted">
+                      Diagnosis summary ·{' '}
+                    </span>
                     {item.diagnosis}
                   </p>
+
                   <p>
-                    <span className="font-semibold text-ms-muted">Learning summary · </span>
+                    <span className="font-semibold text-ms-muted">
+                      Learning summary ·{' '}
+                    </span>
                     {item.aiAnalysis?.warning}
                   </p>
-                  <p className="text-xs text-ms-muted">
-                    <span className="font-semibold">Condition:</span> {item.patientCondition} ·{' '}
-                    <span className="font-semibold">Time:</span> {new Date(item.createdAt).toLocaleString()}
-                  </p>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between border-t border-ms-accent/20 pt-4">
+                  <div className="text-xs text-ms-muted">
+                    Patient condition:
+                    <span className="ml-1 font-semibold capitalize text-ms-ink">
+                      {item.patientCondition}
+                    </span>
+                  </div>
+
+                  <div className="rounded-full bg-ms-panel px-3 py-1 text-xs font-medium text-[#2f7d56]">
+                    Confidential Learning Feed
+                  </div>
                 </div>
               </motion.article>
             ))}
         </div>
 
         {feed && feed.totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-ms-muted">
-              Page {feed.page} of {feed.totalPages} · {feed.total} narratives
+              Page {feed.page} of {feed.totalPages} ·{' '}
+              {feed.total} reports
             </p>
+
             <div className="flex gap-2">
-              <Button variant="outline" type="button" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              <Button
+                variant="outline"
+                type="button"
+                disabled={page <= 1}
+                onClick={() =>
+                  setPage((p) => Math.max(1, p - 1))
+                }
+              >
                 Previous
               </Button>
-              <Button variant="outline" type="button" disabled={page >= feed.totalPages} onClick={() => setPage((p) => p + 1)}>
+
+              <Button
+                variant="outline"
+                type="button"
+                disabled={page >= feed.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
                 Next
               </Button>
             </div>

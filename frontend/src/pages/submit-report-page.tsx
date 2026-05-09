@@ -33,6 +33,10 @@ export function SubmitReportPage() {
     []
   )
 
+  const isFormValid = useMemo(() => {
+    return symptoms.trim().length > 0 && medicines.trim().length > 0 && diagnosis.trim().length > 0
+  }, [symptoms, medicines, diagnosis])
+
   const appendTranscript = useCallback((target: DictationTarget, text: string) => {
     const cleaned = `${text.trim()} `
     if (target === 'symptoms') setSymptoms((prev) => `${prev}${cleaned}`)
@@ -131,6 +135,7 @@ export function SubmitReportPage() {
                 <div className="space-y-2 md:col-span-2">
                   <Label>Patient symptoms</Label>
                   <Textarea value={symptoms} onChange={(e) => setSymptoms(e.target.value)} required />
+                  {symptoms.trim().length === 0 && <p className="text-xs text-red-500">Patient symptoms are required</p>}
                   {mode === 'speech' && (
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" onClick={() => startDictation('symptoms')}>
@@ -150,6 +155,7 @@ export function SubmitReportPage() {
                 <div className="space-y-2 md:col-span-2">
                   <Label>Medicines given</Label>
                   <Textarea value={medicines} onChange={(e) => setMedicines(e.target.value)} required />
+                  {medicines.trim().length === 0 && <p className="text-xs text-red-500">Medicines given are required</p>}
                   {mode === 'speech' && (
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" onClick={() => startDictation('medicines')}>
@@ -169,6 +175,7 @@ export function SubmitReportPage() {
                 <div className="space-y-2 md:col-span-2">
                   <Label>Diagnosis notes</Label>
                   <Textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} required />
+                  {diagnosis.trim().length === 0 && <p className="text-xs text-red-500">Diagnosis notes are required</p>}
                   {mode === 'speech' && (
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" onClick={() => startDictation('diagnosis')}>
@@ -205,6 +212,7 @@ export function SubmitReportPage() {
                   className="mt-4"
                   accept=".pdf,.png,.jpg,.jpeg,.docx"
                   onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+                  aria-label="Upload imaging, labs, PDFs, or DOCX packets"
                 />
                 {files.length > 0 && (
                   <ul className="mt-4 space-y-1 text-left text-xs text-ms-muted">
@@ -215,7 +223,7 @@ export function SubmitReportPage() {
                 )}
               </div>
 
-              <Button type="submit" className="w-full md:w-auto">
+              <Button type="submit" disabled={!isFormValid} className="w-full md:w-auto">
                 Submit to AI verification desk
               </Button>
             </form>

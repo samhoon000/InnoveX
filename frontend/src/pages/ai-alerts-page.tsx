@@ -35,13 +35,12 @@ export function AiAlertsPage() {
   const [alerts, setAlerts] = useState<AlertRecord[]>([])
   const [active, setActive] = useState<AlertRecord | null>(null)
   const [tab, setTab] = useState<'review' | 'error' | 'safety'>('review')
-  const [errorForm, setErrorForm] = useState({ mistake: '', reason: '', learning: '' })
+  const [errorForm, setErrorForm] = useState({ whatWentWrong: '' })
   const [safetyForm, setSafetyForm] = useState({
     updatedDiagnosis: '',
     updatedMedicine: '',
-    patientStatus: '',
-    safetyConfirmation: '',
   })
+  const [errorReportSubmitted, setErrorReportSubmitted] = useState(false)
 
   const severityFilterOptions = useMemo(
     () => [
@@ -52,6 +51,13 @@ export function AiAlertsPage() {
     ],
     []
   )
+
+  const isSafetyFormValid = useMemo(() => {
+    return (
+      safetyForm.updatedDiagnosis.trim().length > 0 &&
+      safetyForm.updatedMedicine.trim().length > 0
+    )
+  }, [safetyForm])
 
   async function load() {
     try {
@@ -76,15 +82,15 @@ export function AiAlertsPage() {
         body: JSON.stringify(errorForm),
       })
       toast.success('Confidential error disclosure captured (+ trust rewards pending).')
-      setActive(null)
-      await load()
+      setErrorReportSubmitted(true)
+      setTab('safety')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Submission failed')
     }
   }
 
   async function submitSafety() {
-    if (!active) return
+    if (!active || !errorReportSubmitted || !isSafetyFormValid) return
     try {
       await apiFetch(`/api/doctor/alerts/${active._id}/safety-confirmation`, {
         method: 'POST',
@@ -92,6 +98,7 @@ export function AiAlertsPage() {
       })
       toast.success('Patient safety confirmation filed.')
       setActive(null)
+      setErrorReportSubmitted(false)
       await load()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Submission failed')
@@ -137,7 +144,7 @@ export function AiAlertsPage() {
               <CountdownBadge deadline={alert.deadline} />
               <p className="text-xs text-ms-muted">{new Date(alert.createdAt).toLocaleString()}</p>
             </div>
-            <Button className="mt-4 w-full md:w-auto" type="button" onClick={() => { setActive(alert); setTab('review'); }}>
+            <Button className="mt-4 w-full md:w-auto" type="button" onClick={() => { setActive(alert); setTab('review'); setErrorReportSubmitted(false); setErrorForm({ whatWentWrong: '' }); setSafetyForm({ updatedDiagnosis: '', updatedMedicine: '' }); }}>
               Open confidential workflow
             </Button>
           </motion.div>
@@ -159,7 +166,7 @@ export function AiAlertsPage() {
                 <Button size="sm" variant={tab === 'error' ? 'default' : 'outline'} type="button" onClick={() => setTab('error')}>
                   Submit error report
                 </Button>
-                <Button size="sm" variant={tab === 'safety' ? 'default' : 'outline'} type="button" onClick={() => setTab('safety')}>
+                <Button size="sm" variant={tab === 'safety' ? 'default' : 'outline'} type="button" onClick={() => setTab('safety')} disabled={!errorReportSubmitted}>
                   Safety confirmation
                 </Button>
               </div>
@@ -219,18 +226,10 @@ export function AiAlertsPage() {
               {tab === 'error' && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>What mistake happened?</Label>
-                    <Textarea value={errorForm.mistake} onChange={(e) => setErrorForm({ ...errorForm, mistake: e.target.value })} />
+                    <Label>What Went Wrong</Label>
+                    <Textarea value={errorForm.whatWentWrong} onChange={(e) => setErrorForm({ ...errorForm, whatWentWrong: e.target.value })} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Why it happened?</Label>
-                    <Textarea value={errorForm.reason} onChange={(e) => setErrorForm({ ...errorForm, reason: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>What did you learn?</Label>
-                    <Textarea value={errorForm.learning} onChange={(e) => setErrorForm({ ...errorForm, learning: e.target.value })} />
-                  </div>
-                  <Button type="button" onClick={() => void submitError()} disabled={!errorForm.mistake || !errorForm.reason || !errorForm.learning}>
+                  <Button type="button" onClick={() => void submitError()} disabled={!errorForm.whatWentWrong}>
                     Encrypt & transmit disclosure
                   </Button>
                 </div>
@@ -241,23 +240,14 @@ export function AiAlertsPage() {
                   <div className="space-y-2">
                     <Label>Updated diagnosis</Label>
                     <Textarea value={safetyForm.updatedDiagnosis} onChange={(e) => setSafetyForm({ ...safetyForm, updatedDiagnosis: e.target.value })} />
+                    {safetyForm.updatedDiagnosis.trim().length === 0 && <p className="text-xs text-red-500">Updated diagnosis is required</p>}
                   </div>
                   <div className="space-y-2">
                     <Label>Updated medicine</Label>
                     <Textarea value={safetyForm.updatedMedicine} onChange={(e) => setSafetyForm({ ...safetyForm, updatedMedicine: e.target.value })} />
+                    {safetyForm.updatedMedicine.trim().length === 0 && <p className="text-xs text-red-500">Updated medicine is required</p>}
                   </div>
-                  <div className="space-y-2">
-                    <Label>Patient status</Label>
-                    <Textarea value={safetyForm.patientStatus} onChange={(e) => setSafetyForm({ ...safetyForm, patientStatus: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Safety confirmation narrative</Label>
-                    <Textarea
-                      value={safetyForm.safetyConfirmation}
-                      onChange={(e) => setSafetyForm({ ...safetyForm, safetyConfirmation: e.target.value })}
-                    />
-                  </div>
-                  <Button type="button" onClick={() => void submitSafety()}>
+                  <Button type="button" onClick={() => void submitSafety()} disabled={!errorReportSubmitted || !isSafetyFormValid}>
                     Submit patient safety confirmation
                   </Button>
                 </div>
