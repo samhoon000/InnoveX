@@ -2,8 +2,6 @@ node_modules/
 **/node_modules/
 dist/
 **/dist/
-.env
-.env.local
 backend/uploads/
 *.log
 .DS_Store
