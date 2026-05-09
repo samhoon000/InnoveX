@@ -16,12 +16,16 @@ export function SignupPage() {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     hospitalId: '',
   })
   const [busy, setBusy] = useState(false)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (form.password !== form.confirmPassword) {
+      return toast.error('Passwords do not match')
+    }
     setBusy(true)
     try {
       await signup({
@@ -58,10 +62,9 @@ export function SignupPage() {
 
         <Card className="border-ms-accent/50 shadow-xl shadow-ms-accent/15">
           <CardHeader>
-            <CardTitle>Create clinician workspace</CardTitle>
+            <CardTitle>Register</CardTitle>
             <CardDescription>
-              Password minimum eight characters. In this browser-only demo, onboarding is disabled — use the demo sign-in on
-              the login page.
+
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -94,10 +97,22 @@ export function SignupPage() {
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="hospitalId">Hospital Unique ID</Label>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.confirmPassword}
+                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                  minLength={8}
+                  required
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="hospitalId">Hospital Unique ID (Enter DOC123)</Label>
                 <Input
                   id="hospitalId"
-                  placeholder="DOC1930"
+                  placeholder="DOC123"
                   autoComplete="off"
                   value={form.hospitalId}
                   onChange={(e) => setForm({ ...form, hospitalId: e.target.value.toUpperCase() })}
@@ -106,16 +121,11 @@ export function SignupPage() {
               </div>
               <div className="md:col-span-2">
                 <Button type="submit" className="w-full md:w-auto" disabled={busy}>
-                  {busy ? 'Provisioning…' : 'Activate anonymized profile'}
+                  {busy ? 'Provisioning…' : 'Register'}
                 </Button>
               </div>
             </form>
-            <p className="mt-6 text-center text-sm text-ms-muted md:text-left">
-              Returning clinician?{' '}
-              <Link className="font-semibold text-[#2f7d56] underline-offset-4 hover:underline" to="/login">
-                Secure login
-              </Link>
-            </p>
+
           </CardContent>
         </Card>
       </motion.div>

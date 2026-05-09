@@ -4,10 +4,12 @@
   "version": "1.0.0",
   "description": "MediShield AI — browser-only demo SPA",
   "workspaces": [
-    "frontend"
+    "frontend",
+    "backend"
   ],
   "scripts": {
     "dev": "npm run dev -w frontend",
+    "dev:backend": "node backend/server.js",
     "build": "npm run build -w frontend",
     "preview": "npm run preview -w frontend",
     "lint": "npm run lint -w frontend"

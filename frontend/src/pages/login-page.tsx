@@ -45,8 +45,8 @@ export function LoginPage() {
 
         <Card className="border-ms-accent/50 shadow-xl shadow-ms-accent/20">
           <CardHeader>
-            <CardTitle>Secure clinician login</CardTitle>
-            <CardDescription>Use institutional email or hospital credential identifier issued offline.</CardDescription>
+            <CardTitle>Login</CardTitle>
+            <CardDescription></CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={onSubmit}>
@@ -73,13 +73,13 @@ export function LoginPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? 'Authenticating…' : 'Enter platform'}
+                {busy ? 'Authenticating…' : 'Login'}
               </Button>
             </form>
             <p className="mt-6 text-center text-sm text-ms-muted">
-              Need onboarding?{' '}
+              Don't have an account?{' '}
               <Link className="font-semibold text-[#2f7d56] underline-offset-4 hover:underline" to="/signup">
-                Complete credential linkage
+                Register
               </Link>
             </p>
           </CardContent>

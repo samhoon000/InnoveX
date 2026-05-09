@@ -1,5 +1,3 @@
-import { resolveMockApi } from '@/lib/mock-api'
-
 const TOKEN_KEY = 'medishield_token'
 
 export function getToken() {
@@ -12,5 +10,24 @@ export function setToken(token: string | null) {
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  return resolveMockApi<T>(path, init, getToken())
+  const headers = new Headers(init.headers || {})
+  const token = getToken()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  if (!headers.has('Content-Type') && init.body) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const response = await fetch(`http://localhost:5000${path}`, {
+    ...init,
+    headers,
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.error || errorData.message || `API error: ${response.status}`)
+  }
+
+  return response.json()
 }
