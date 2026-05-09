@@ -5,9 +5,7 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   hospitalId: { type: String, required: true },
-  role: { type: String, default: 'doctor' },
-  trustScore: { type: Number, default: 98 },
-  anonymousAlias: { type: String, default: () => `Dr. ${Math.random().toString(36).substring(7).toUpperCase()}` },
+  role: { type: String, default: 'doctor' }
 });
 
 // Avoid 'id' virtual and toJSON weirdness
