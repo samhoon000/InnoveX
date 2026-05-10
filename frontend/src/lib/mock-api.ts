@@ -405,6 +405,7 @@ export async function resolveMockApi<T>(path: string, init: RequestInit, token: 
         status: 'open',
         createdAt: new Date().toISOString(),
         reportId: {
+          symptoms: '',
           medicines,
           diagnosis,
           uploads: uploadNames.map((originalName) => ({ originalName })),
@@ -433,6 +434,7 @@ export async function resolveMockApi<T>(path: string, init: RequestInit, token: 
         status: 'open',
         createdAt: new Date().toISOString(),
         reportId: {
+          symptoms: '',
           medicines,
           diagnosis,
           uploads: uploadNames.map((originalName) => ({ originalName })),

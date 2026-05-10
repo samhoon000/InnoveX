@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('../lib/jwt-secret');
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || 'very_secret_key';
+const JWT_SECRET = getJwtSecret();
 
 function protect(req, res, next) {
   const token =

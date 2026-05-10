@@ -3,11 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const protect = require('../middleware/protect');
+const { getJwtSecret } = require('../lib/jwt-secret');
 
 const router = express.Router();
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || 'very_secret_key';
+const JWT_SECRET = getJwtSecret();
 
 // Register
 router.post('/register', async (req, res) => {

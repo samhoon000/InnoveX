@@ -1,4 +1,6 @@
-const pdfParse = require('pdf-parse');
+// Import pdf-parse via its inner module to avoid the package's index.js
+// debug branch that reads a test PDF from disk during bundling.
+const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 
 const PDF_MIME = 'application/pdf';
 const TXT_MIME = 'text/plain';

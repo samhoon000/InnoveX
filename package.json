@@ -2,16 +2,30 @@
   "name": "medishield-ai",
   "private": true,
   "version": "1.0.0",
-  "description": "MediShield AI — browser-only demo SPA",
+  "description": "MediShield AI — full-stack Vercel deployment (Vite SPA + Express serverless API)",
   "workspaces": [
     "frontend",
     "backend"
   ],
+  "engines": {
+    "node": ">=18.18.0 <=22.x"
+  },
   "scripts": {
     "dev": "npm run dev -w frontend",
     "dev:backend": "node backend/server.js",
     "build": "npm run build -w frontend",
+    "vercel-build": "npm run build -w frontend",
     "preview": "npm run preview -w frontend",
     "lint": "npm run lint -w frontend"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.6.2",
+    "multer": "^2.1.1",
+    "pdf-parse": "^1.1.4"
   }
 }

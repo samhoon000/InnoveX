@@ -1,3 +1,14 @@
+'use strict';
+
+/**
+ * Local development entry point.
+ *
+ * In production (Vercel) the request handler is `api/index.js`,
+ * which imports the same Express app. This file is only used for
+ * `npm run dev:backend` so we can keep the same dotenv loading
+ * and the familiar `app.listen` flow on a developer machine.
+ */
+
 const path = require('path');
 const loadEnvFromFile = require('./lib/load-env-from-file');
 
@@ -14,61 +25,7 @@ console.log(
   !!process.env.GROQ_API_KEY
 );
 
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-
-const authRoutes = require('./routes/auth');
-const dashboardRoutes = require('./routes/dashboard');
-const alertRoutes = require('./routes/alerts');
-const reportRoutes = require('./routes/reports');
-const doctorReportRoutes = require('./routes/doctor-reports');
-
-const app = express();
-
-/* ---------------- Middleware ---------------- */
-
-app.use(cors());
-
-app.use(express.json());
-
-/* ---------------- MongoDB ---------------- */
-
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err);
-  });
-
-/* ---------------- Routes ---------------- */
-
-app.use('/api/auth', authRoutes);
-
-app.use('/api/dashboard', dashboardRoutes);
-
-app.use('/api/alerts', alertRoutes);
-
-app.use('/api/reports', reportRoutes);
-
-app.use(
-  '/api/doctor/reports',
-  doctorReportRoutes
-);
-
-/* ---------------- Root ---------------- */
-
-app.get('/', (req, res) => {
-  res.json({
-    message: 'MediShield AI Backend Running',
-  });
-});
-
-/* ---------------- Server ---------------- */
+const app = require('./app');
 
 const PORT = process.env.PORT || 5000;
 

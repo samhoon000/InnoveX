@@ -1,4 +1,5 @@
 import { resolveMockApi } from './mock-api'
+import { API_BASE } from './api-base'
 
 const TOKEN_KEY = 'medishield_token'
 
@@ -42,7 +43,7 @@ export async function apiFetch<T>(
 
   try {
     const response = await fetch(
-      `http://localhost:5000${path}`,
+      `${API_BASE}${path}`,
       {
         ...init,
         headers,

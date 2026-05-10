@@ -1,0 +1,10 @@
+.git
+.gitignore
+README.md
+DEPLOYMENT.md
+LICENSE
+**/node_modules
+**/.env
+**/.env.local
+backend/uploads
+**/*.log

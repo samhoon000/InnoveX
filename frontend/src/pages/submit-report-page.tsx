@@ -4,13 +4,12 @@ import { motion } from 'framer-motion'
 import { Mic, Square, UploadCloud } from 'lucide-react'
 import { toast } from 'sonner'
 import { getToken } from '@/lib/api'
+import { API_BASE } from '@/lib/api-base'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-
-const API_ORIGIN = 'http://localhost:5000'
 
 type SpeechFieldApi = {
   isListening: boolean
@@ -108,7 +107,7 @@ async function postReportFormData(fd: FormData): Promise<{
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const response = await fetch(`${API_ORIGIN}/api/doctor/reports`, {
+  const response = await fetch(`${API_BASE}/api/doctor/reports`, {
     method: 'POST',
     headers,
     body: fd,
