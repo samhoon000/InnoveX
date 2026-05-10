@@ -18,14 +18,14 @@ export function resetMockProfileState() {
 }
 
 function assertDoctor(token: string | null) {
-  if (token !== SESSION_TOKEN_DOCTOR) {
-    throw new Error('Sign in as a clinician (demo@medishield.demo or hospital ID DOC1023) to use this workspace.')
+  if (!token) {
+    throw new Error('Sign in as a clinician to use this workspace.')
   }
 }
 
 function assertAuthority(token: string | null) {
-  if (token !== SESSION_TOKEN_AUTHORITY) {
-    throw new Error('Sign in as a safety reviewer (authority@medishield.demo) to open this queue.')
+  if (!token) {
+    throw new Error('Sign in as a safety reviewer to open this queue.')
   }
 }
 
