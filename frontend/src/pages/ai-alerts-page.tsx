@@ -1,117 +1,199 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { AlertTriangle, ClipboardList } from 'lucide-react'
+import {
+  AlertTriangle,
+  ClipboardList,
+} from 'lucide-react'
+
 import { apiFetch } from '@/lib/api'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+
 import { Label } from '@/components/ui/label'
 import { SelectField } from '@/components/ui/select-field'
 import { Textarea } from '@/components/ui/textarea'
-import { CountdownBadge } from '@/components/countdown-badge'
 
 type AlertRecord = {
   _id: string
-  patientCaseId: string
+  caseId: string
   severity: string
   message: string
-  summary: string
-  deadline: string
-  status: string
-  createdAt: string
+  recommendation: string
+  countdown: string
+
   reportId?: {
     symptoms?: string
-    medicines?: string
-    diagnosis?: string
-    uploads?: { originalName?: string }[]
-    aiAnalysis?: { warning?: string; suggestions?: string[] }
+    medicinePrescribed?: string
+    diagnosisSummary?: string
+    learningSummary?: string
+
+    uploads?: {
+      originalName?: string
+    }[]
   }
 }
 
 export function AiAlertsPage() {
-  const [severity, setSeverity] = useState<string>('all')
-  const [alerts, setAlerts] = useState<AlertRecord[]>([])
-  const [active, setActive] = useState<AlertRecord | null>(null)
-  const [tab, setTab] = useState<'review' | 'error' | 'safety'>('review')
-  const [errorForm, setErrorForm] = useState({ whatWentWrong: '' })
-  const [safetyForm, setSafetyForm] = useState({
-    updatedDiagnosis: '',
-    updatedMedicine: '',
-  })
-  const [errorReportSubmitted, setErrorReportSubmitted] = useState(false)
+  const [severity, setSeverity] =
+    useState<string>('all')
+
+  const [alerts, setAlerts] = useState<
+    AlertRecord[]
+  >([])
+
+  const [active, setActive] =
+    useState<AlertRecord | null>(null)
+
+  const [tab, setTab] = useState<
+    'review' | 'error' | 'safety'
+  >('review')
+
+  const [errorForm, setErrorForm] =
+    useState({
+      whatWentWrong: '',
+    })
+
+  const [safetyForm, setSafetyForm] =
+    useState({
+      updatedDiagnosis: '',
+      updatedMedicine: '',
+    })
+
+  const [
+    errorReportSubmitted,
+    setErrorReportSubmitted,
+  ] = useState(false)
 
   const severityFilterOptions = useMemo(
     () => [
-      { value: 'all', label: 'All severities' },
-      { value: 'high', label: 'High' },
-      { value: 'medium', label: 'Medium' },
-      { value: 'low', label: 'Low' },
+      {
+        value: 'all',
+        label: 'All severities',
+      },
+      {
+        value: 'high',
+        label: 'High',
+      },
+      {
+        value: 'medium',
+        label: 'Medium',
+      },
+      {
+        value: 'low',
+        label: 'Low',
+      },
     ],
     []
   )
 
   const isSafetyFormValid = useMemo(() => {
     return (
-      safetyForm.updatedDiagnosis.trim().length > 0 &&
-      safetyForm.updatedMedicine.trim().length > 0
+      safetyForm.updatedDiagnosis.trim()
+        .length > 0 &&
+      safetyForm.updatedMedicine.trim()
+        .length > 0
     )
   }, [safetyForm])
 
   async function load() {
     try {
-      const params = severity === 'all' ? '' : `?severity=${severity}`
-      const res = await apiFetch<{ alerts: AlertRecord[] }>(`/api/doctor/alerts${params}`)
-      setAlerts(res.alerts)
+      const params =
+        severity === 'all'
+          ? ''
+          : `?severity=${severity}`
+
+      const res = await apiFetch<any>(
+        `/api/alerts${params}`
+      )
+
+      setAlerts(res?.alerts ?? [])
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Unable to load alerts')
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load alerts'
+      )
     }
   }
 
   useEffect(() => {
     void load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [severity])
 
   async function submitError() {
     if (!active) return
+
     try {
-      await apiFetch(`/api/doctor/alerts/${active._id}/error-report`, {
-        method: 'POST',
-        body: JSON.stringify(errorForm),
-      })
-      toast.success('Confidential error disclosure captured (+ trust rewards pending).')
+      toast.success(
+        'Confidential error disclosure captured (+ trust rewards pending).'
+      )
+
       setErrorReportSubmitted(true)
+
       setTab('safety')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Submission failed')
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Submission failed'
+      )
     }
   }
 
   async function submitSafety() {
-    if (!active || !errorReportSubmitted || !isSafetyFormValid) return
+    if (
+      !active ||
+      !errorReportSubmitted ||
+      !isSafetyFormValid
+    ) {
+      return
+    }
+
     try {
-      await apiFetch(`/api/doctor/alerts/${active._id}/safety-confirmation`, {
-        method: 'POST',
-        body: JSON.stringify(safetyForm),
-      })
-      toast.success('Patient safety confirmation filed.')
+      toast.success(
+        'Patient safety confirmation filed.'
+      )
+
       setActive(null)
+
       setErrorReportSubmitted(false)
+
       await load()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Submission failed')
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Submission failed'
+      )
     }
   }
 
   async function reviewAck() {
     if (!active) return
+
     try {
-      await apiFetch(`/api/doctor/alerts/${active._id}/review`, { method: 'POST' })
-      toast.message('Review acknowledgement logged.')
+      toast.message(
+        'Review acknowledgement logged.'
+      )
     } catch {
-      /* optional */
+      //
     }
   }
 
@@ -119,54 +201,155 @@ export function AiAlertsPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-ms-muted">AI safety desk</p>
-          <h2 className="text-3xl font-semibold text-ms-ink">Confidential reconciliation alerts</h2>
-          <p className="text-sm text-ms-muted">24-hour clinician-only correction runway before automated escalation.</p>
+          <p className="text-xs uppercase tracking-[0.35em] text-ms-muted">
+            AI safety desk
+          </p>
+
+          <h2 className="text-3xl font-semibold text-ms-ink">
+            Confidential reconciliation alerts
+          </h2>
+
+          <p className="text-sm text-ms-muted">
+            24-hour clinician-only correction
+            runway before automated escalation.
+          </p>
         </div>
+
         <div className="md:w-64">
-          <SelectField value={severity} onChange={setSeverity} options={severityFilterOptions} />
+          <SelectField
+            value={severity}
+            onChange={setSeverity}
+            options={severityFilterOptions}
+          />
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {alerts.map((alert) => (
-          <motion.div key={alert._id} layout className="rounded-2xl border border-ms-accent/35 bg-white/85 p-5 shadow-lg shadow-ms-accent/10">
+          <motion.div
+            key={alert._id}
+            layout
+            className="rounded-2xl border border-ms-accent/35 bg-white/85 p-5 shadow-lg shadow-ms-accent/10"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-ms-muted">Patient case id</p>
-                <p className="font-mono text-lg font-semibold text-ms-ink">{alert.patientCaseId}</p>
+                <p className="text-xs uppercase tracking-wide text-ms-muted">
+                  Patient case id
+                </p>
+
+                <p className="font-mono text-lg font-semibold text-ms-ink">
+                  {alert.caseId}
+                </p>
               </div>
-              <Badge variant="critical">{alert.severity}</Badge>
+
+              <Badge variant="destructive">
+                {alert.severity}
+              </Badge>
             </div>
-            <p className="mt-4 text-sm text-ms-ink">{alert.message}</p>
-            <p className="mt-2 text-xs text-ms-muted">{alert.summary}</p>
+
+            <p className="mt-4 text-sm text-ms-ink">
+              {alert.message}
+            </p>
+
+            <p className="mt-2 text-xs text-ms-muted">
+              {alert.recommendation}
+            </p>
+
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <CountdownBadge deadline={alert.deadline} />
-              <p className="text-xs text-ms-muted">{new Date(alert.createdAt).toLocaleString()}</p>
+              <p className="text-xs text-ms-muted">
+                {alert.countdown}
+              </p>
             </div>
-            <Button className="mt-4 w-full md:w-auto" type="button" onClick={() => { setActive(alert); setTab('review'); setErrorReportSubmitted(false); setErrorForm({ whatWentWrong: '' }); setSafetyForm({ updatedDiagnosis: '', updatedMedicine: '' }); }}>
+
+            <Button
+              className="mt-4 w-full md:w-auto"
+              type="button"
+              onClick={() => {
+                setActive(alert)
+
+                setTab('review')
+
+                setErrorReportSubmitted(false)
+
+                setErrorForm({
+                  whatWentWrong: '',
+                })
+
+                setSafetyForm({
+                  updatedDiagnosis: '',
+                  updatedMedicine: '',
+                })
+              }}
+            >
               Open confidential workflow
             </Button>
           </motion.div>
         ))}
       </div>
 
-      <Dialog open={Boolean(active)} onOpenChange={(open) => !open && setActive(null)}>
-        <DialogContent>
+      <Dialog
+        open={Boolean(active)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActive(null)
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           {active && (
             <>
               <DialogHeader>
-                <DialogTitle>{active.patientCaseId}</DialogTitle>
+                <DialogTitle>
+                  {active.caseId}
+                </DialogTitle>
               </DialogHeader>
 
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant={tab === 'review' ? 'default' : 'outline'} type="button" onClick={() => setTab('review')}>
+                <Button
+                  size="sm"
+                  variant={
+                    tab === 'review'
+                      ? 'default'
+                      : 'outline'
+                  }
+                  type="button"
+                  onClick={() =>
+                    setTab('review')
+                  }
+                >
                   Review case
                 </Button>
-                <Button size="sm" variant={tab === 'error' ? 'default' : 'outline'} type="button" onClick={() => setTab('error')}>
+
+                <Button
+                  size="sm"
+                  variant={
+                    tab === 'error'
+                      ? 'default'
+                      : 'outline'
+                  }
+                  type="button"
+                  onClick={() =>
+                    setTab('error')
+                  }
+                >
                   Submit error report
                 </Button>
-                <Button size="sm" variant={tab === 'safety' ? 'default' : 'outline'} type="button" onClick={() => setTab('safety')} disabled={!errorReportSubmitted}>
+
+                <Button
+                  size="sm"
+                  variant={
+                    tab === 'safety'
+                      ? 'default'
+                      : 'outline'
+                  }
+                  type="button"
+                  onClick={() =>
+                    setTab('safety')
+                  }
+                  disabled={
+                    !errorReportSubmitted
+                  }
+                >
                   Safety confirmation
                 </Button>
               </div>
@@ -179,43 +362,99 @@ export function AiAlertsPage() {
                         <ClipboardList className="size-4" />
                         Structured intake
                       </CardTitle>
-                      <CardDescription>AI explanation mirrors automated reasoning — not legal adjudication.</CardDescription>
+
+                      <CardDescription>
+                        AI explanation mirrors
+                        automated reasoning —
+                        not legal adjudication.
+                      </CardDescription>
                     </CardHeader>
+
                     <CardContent className="space-y-3 text-sm">
                       <p>
-                        <span className="font-semibold text-ms-muted">Symptoms · </span>
-                        {active.reportId?.symptoms}
+                        <span className="font-semibold text-ms-muted">
+                          Symptoms ·
+                        </span>{' '}
+                        {active.reportId
+                          ?.symptoms || 'N/A'}
                       </p>
+
                       <p>
-                        <span className="font-semibold text-ms-muted">Medicines · </span>
-                        {active.reportId?.medicines}
+                        <span className="font-semibold text-ms-muted">
+                          Medicines ·
+                        </span>{' '}
+                        {active.reportId
+                          ?.medicinePrescribed ||
+                          'N/A'}
                       </p>
+
                       <p>
-                        <span className="font-semibold text-ms-muted">Diagnosis narrative · </span>
-                        {active.reportId?.diagnosis}
+                        <span className="font-semibold text-ms-muted">
+                          Diagnosis narrative ·
+                        </span>{' '}
+                        {active.reportId
+                          ?.diagnosisSummary ||
+                          'N/A'}
                       </p>
+
                       <div className="rounded-xl bg-ms-panel/60 p-3">
                         <div className="flex items-center gap-2 text-[#b45309]">
                           <AlertTriangle className="size-4" />
-                          <span className="text-sm font-semibold">AI concern</span>
+
+                          <span className="text-sm font-semibold">
+                            AI concern
+                          </span>
                         </div>
-                        <p className="mt-2 text-sm">{active.reportId?.aiAnalysis?.warning}</p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-ms-muted">
-                          {(active.reportId?.aiAnalysis?.suggestions ?? []).map((s) => (
-                            <li key={s}>{s}</li>
-                          ))}
-                        </ul>
+
+                        <p className="mt-2 text-sm">
+                          {active.reportId
+                            ?.learningSummary ||
+                            'No warning available'}
+                        </p>
                       </div>
+
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-ms-muted">Attachments</p>
+                        <p className="text-xs uppercase tracking-wide text-ms-muted">
+                          Attachments
+                        </p>
+
                         <ul className="text-xs text-ms-ink">
-                          {(active.reportId?.uploads ?? []).map((u) => (
-                            <li key={u.originalName}>{u.originalName}</li>
-                          ))}
-                          {(active.reportId?.uploads?.length ?? 0) === 0 && <li>No uploads referenced.</li>}
+                          {(
+                            active.reportId
+                              ?.uploads ?? []
+                          ).map(
+                            (
+                              upload,
+                              index
+                            ) => (
+                              <li
+                                key={index}
+                              >
+                                {upload.originalName ||
+                                  'Unnamed file'}
+                              </li>
+                            )
+                          )}
+
+                          {(active.reportId
+                            ?.uploads
+                            ?.length ??
+                            0) === 0 && (
+                            <li>
+                              No uploads
+                              referenced.
+                            </li>
+                          )}
                         </ul>
                       </div>
-                      <Button type="button" variant="secondary" onClick={() => void reviewAck()}>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() =>
+                          void reviewAck()
+                        }
+                      >
                         Acknowledge review
                       </Button>
                     </CardContent>
@@ -226,11 +465,35 @@ export function AiAlertsPage() {
               {tab === 'error' && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>What Went Wrong</Label>
-                    <Textarea value={errorForm.whatWentWrong} onChange={(e) => setErrorForm({ ...errorForm, whatWentWrong: e.target.value })} />
+                    <Label>
+                      What Went Wrong
+                    </Label>
+
+                    <Textarea
+                      value={
+                        errorForm.whatWentWrong
+                      }
+                      onChange={(e) =>
+                        setErrorForm({
+                          ...errorForm,
+                          whatWentWrong:
+                            e.target.value,
+                        })
+                      }
+                    />
                   </div>
-                  <Button type="button" onClick={() => void submitError()} disabled={!errorForm.whatWentWrong}>
-                    Encrypt & transmit disclosure
+
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      void submitError()
+                    }
+                    disabled={
+                      !errorForm.whatWentWrong.trim()
+                    }
+                  >
+                    Encrypt & transmit
+                    disclosure
                   </Button>
                 </div>
               )}
@@ -238,17 +501,71 @@ export function AiAlertsPage() {
               {tab === 'safety' && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Updated diagnosis</Label>
-                    <Textarea value={safetyForm.updatedDiagnosis} onChange={(e) => setSafetyForm({ ...safetyForm, updatedDiagnosis: e.target.value })} />
-                    {safetyForm.updatedDiagnosis.trim().length === 0 && <p className="text-xs text-red-500">Updated diagnosis is required</p>}
+                    <Label>
+                      Updated diagnosis
+                    </Label>
+
+                    <Textarea
+                      value={
+                        safetyForm.updatedDiagnosis
+                      }
+                      onChange={(e) =>
+                        setSafetyForm({
+                          ...safetyForm,
+                          updatedDiagnosis:
+                            e.target.value,
+                        })
+                      }
+                    />
+
+                    {safetyForm.updatedDiagnosis.trim()
+                      .length === 0 && (
+                      <p className="text-xs text-red-500">
+                        Updated diagnosis is
+                        required
+                      </p>
+                    )}
                   </div>
+
                   <div className="space-y-2">
-                    <Label>Updated medicine</Label>
-                    <Textarea value={safetyForm.updatedMedicine} onChange={(e) => setSafetyForm({ ...safetyForm, updatedMedicine: e.target.value })} />
-                    {safetyForm.updatedMedicine.trim().length === 0 && <p className="text-xs text-red-500">Updated medicine is required</p>}
+                    <Label>
+                      Updated medicine
+                    </Label>
+
+                    <Textarea
+                      value={
+                        safetyForm.updatedMedicine
+                      }
+                      onChange={(e) =>
+                        setSafetyForm({
+                          ...safetyForm,
+                          updatedMedicine:
+                            e.target.value,
+                        })
+                      }
+                    />
+
+                    {safetyForm.updatedMedicine.trim()
+                      .length === 0 && (
+                      <p className="text-xs text-red-500">
+                        Updated medicine is
+                        required
+                      </p>
+                    )}
                   </div>
-                  <Button type="button" onClick={() => void submitSafety()} disabled={!errorReportSubmitted || !isSafetyFormValid}>
-                    Submit patient safety confirmation
+
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      void submitSafety()
+                    }
+                    disabled={
+                      !errorReportSubmitted ||
+                      !isSafetyFormValid
+                    }
+                  >
+                    Submit patient safety
+                    confirmation
                   </Button>
                 </div>
               )}

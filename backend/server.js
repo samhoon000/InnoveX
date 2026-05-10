@@ -1,28 +1,58 @@
 require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
+const authRoutes = require('./routes/auth');
+const dashboardRoutes = require('./routes/dashboard');
+const alertRoutes = require('./routes/alerts');
+const reportRoutes = require('./routes/reports');
+
 const app = express();
 
+/* ---------------- Middleware ---------------- */
+
 app.use(cors());
+
 app.use(express.json());
 
-// Set up MongoDB connection
-const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) {
-  console.warn('WARNING: MONGO_URI is not set in .env file!');
-} else {
-  mongoose.connect(MONGO_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch((err) => console.error('MongoDB connection error:', err));
-}
+/* ---------------- MongoDB ---------------- */
 
-// Routes
-const authRoutes = require('./routes/auth');
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+  });
+
+/* ---------------- Routes ---------------- */
+
 app.use('/api/auth', authRoutes);
 
+app.use('/api/dashboard', dashboardRoutes);
+
+app.use('/api/alerts', alertRoutes);
+
+// NEW REPORT ROUTE
+app.use('/api/reports', reportRoutes);
+
+/* ---------------- Root ---------------- */
+
+app.get('/', (req, res) => {
+  res.json({
+    message: 'MediShield AI Backend Running',
+  });
+});
+
+/* ---------------- Server ---------------- */
+
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

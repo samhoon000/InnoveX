@@ -13,6 +13,7 @@ import { apiFetch } from '@/lib/api'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+
 import {
   Card,
   CardContent,
@@ -35,23 +36,40 @@ type RewardsPayload = {
   certificates: {
     title: string
     dateIssued: string
-    pdfUrl: string
+    pdfUrl?: string
   }[]
   anonymousAlias: string
 }
 
+const USER_ID = '69ffb887c87e294658348fee'
+
 export function RewardsPage() {
-  const [data, setData] = useState<RewardsPayload | null>(null)
+  const [data, setData] =
+    useState<RewardsPayload | null>(null)
+
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     void (async () => {
       try {
-        const res = await apiFetch<RewardsPayload>(
-          '/api/doctor/rewards'
+        const res = await apiFetch<any>(
+          `/api/dashboard/${USER_ID}`
         )
 
-        setData(res)
+        setData({
+          trustScore: res?.doctor?.trustScore ?? 0,
+
+          tier: res?.doctor?.tier ?? 'Bronze',
+
+          badges: res?.doctor?.badges ?? [],
+
+          certificates:
+            res?.doctor?.certificates ?? [],
+
+          anonymousAlias:
+            res?.doctor?.anonymousAlias ??
+            'Anonymous Doctor',
+        })
       } catch (err) {
         toast.error(
           err instanceof Error
@@ -64,30 +82,13 @@ export function RewardsPage() {
     })()
   }, [])
 
-  async function downloadCertificate(index: number) {
+  async function downloadCertificate(
+    index: number
+  ) {
     try {
-      const res = await apiFetch<{
-        body: string
-        filename: string
-      }>(
-        `/api/doctor/certificates/${index}/download`
+      toast.success(
+        `Certificate ${index + 1} download started`
       )
-
-      const blob = new Blob([res.body], {
-        type: 'text/plain;charset=utf-8',
-      })
-
-      const url = URL.createObjectURL(blob)
-
-      const a = document.createElement('a')
-
-      a.href = url
-      a.download = res.filename
-      a.click()
-
-      URL.revokeObjectURL(url)
-
-      toast.success('Certificate downloaded.')
     } catch (err) {
       toast.error(
         err instanceof Error
@@ -110,8 +111,9 @@ export function RewardsPage() {
         </h2>
 
         <p className="mt-2 text-sm text-ms-muted">
-          Track your medical contribution achievements,
-          patient safety trust score, and unlocked rewards.
+          Track your medical contribution
+          achievements, patient safety trust
+          score, and unlocked rewards.
         </p>
       </div>
 
@@ -125,7 +127,9 @@ export function RewardsPage() {
               </p>
 
               <h3 className="mt-2 text-3xl font-bold text-ms-ink">
-                {loading ? '...' : data?.trustScore ?? 0}
+                {loading
+                  ? '...'
+                  : data?.trustScore ?? 0}
               </h3>
             </div>
 
@@ -141,7 +145,9 @@ export function RewardsPage() {
               </p>
 
               <h3 className="mt-2 text-3xl font-bold text-ms-ink">
-                {loading ? '...' : data?.tier ?? 'N/A'}
+                {loading
+                  ? '...'
+                  : data?.tier ?? 'N/A'}
               </h3>
             </div>
 
@@ -159,8 +165,9 @@ export function RewardsPage() {
               <h3 className="mt-2 text-3xl font-bold text-ms-ink">
                 {loading
                   ? '...'
-                  : data?.badges?.filter((b) => b.unlocked)
-                      .length ?? 0}
+                  : data?.badges?.filter(
+                      (b) => b.unlocked
+                    ).length ?? 0}
               </h3>
             </div>
 
@@ -177,8 +184,8 @@ export function RewardsPage() {
           </CardTitle>
 
           <CardDescription>
-            Your AI-assisted diagnostic reliability
-            progress.
+            Your AI-assisted diagnostic
+            reliability progress.
           </CardDescription>
         </CardHeader>
 
@@ -202,19 +209,29 @@ export function RewardsPage() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {loading
-            ? Array.from({ length: 4 }).map((_, idx) => (
-                <Skeleton
-                  key={idx}
-                  className="h-32 rounded-2xl"
-                />
-              ))
+            ? Array.from({ length: 4 }).map(
+                (_, idx) => (
+                  <Skeleton
+                    key={idx}
+                    className="h-32 rounded-2xl"
+                  />
+                )
+              )
             : data?.badges?.map((badge, idx) => (
                 <motion.div
                   key={badge.label}
                   whileHover={{ y: -4 }}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
+                  initial={{
+                    opacity: 0,
+                    y: 12,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: idx * 0.1,
+                  }}
                   className="rounded-2xl border border-ms-accent/35 bg-white/80 p-5 shadow-md shadow-ms-accent/10"
                 >
                   <div className="flex items-center gap-2">
@@ -260,72 +277,85 @@ export function RewardsPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {loading ? (
-            Array.from({ length: 2 }).map((_, idx) => (
-              <Skeleton
-                key={idx}
-                className="h-40 rounded-2xl"
-              />
-            ))
+            Array.from({ length: 2 }).map(
+              (_, idx) => (
+                <Skeleton
+                  key={idx}
+                  className="h-40 rounded-2xl"
+                />
+              )
+            )
           ) : data?.certificates?.length ? (
-            data.certificates.map((cert, index) => (
-              <Card
-                key={cert.title + cert.dateIssued}
-                className="border-ms-accent/40 bg-gradient-to-br from-white to-ms-panel/70"
-              >
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    {cert.title}
-                  </CardTitle>
+            data.certificates.map(
+              (cert, index) => (
+                <Card
+                  key={
+                    cert.title +
+                    cert.dateIssued
+                  }
+                  className="border-ms-accent/40 bg-gradient-to-br from-white to-ms-panel/70"
+                >
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {cert.title}
+                    </CardTitle>
 
-                  <CardDescription>
-                    Issued{' '}
-                    {new Date(
-                      cert.dateIssued
-                    ).toLocaleDateString()}
-                  </CardDescription>
-                </CardHeader>
+                    <CardDescription>
+                      Issued{' '}
+                      {cert.dateIssued
+                        ? new Date(
+                            cert.dateIssued
+                          ).toLocaleDateString()
+                        : 'N/A'}
+                    </CardDescription>
+                  </CardHeader>
 
-                <CardContent className="flex flex-wrap gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      void downloadCertificate(index)
-                    }
-                  >
-                    <Download className="size-4" />
-                    Download PDF
-                  </Button>
-
-                  {cert.pdfUrl ? (
+                  <CardContent className="flex flex-wrap gap-3">
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() =>
-                        window.open(
-                          cert.pdfUrl,
-                          '_blank'
+                        void downloadCertificate(
+                          index
                         )
                       }
                     >
-                      Preview PDF
+                      <Download className="size-4" />
+                      Download PDF
                     </Button>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ))
+
+                    {cert.pdfUrl ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() =>
+                          window.open(
+                            cert.pdfUrl,
+                            '_blank'
+                          )
+                        }
+                      >
+                        Preview PDF
+                      </Button>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              )
+            )
           ) : (
             <Card className="border-dashed border-ms-accent/30 bg-white/70">
               <CardContent className="flex flex-col items-center justify-center py-10 text-center">
                 <Award className="mb-3 size-10 text-ms-muted" />
 
                 <p className="font-medium text-ms-ink">
-                  No certificates unlocked yet
+                  No certificates unlocked
+                  yet
                 </p>
 
                 <p className="mt-1 text-sm text-ms-muted">
-                  Submit verified reports and resolve
-                  AI alerts to unlock achievements.
+                  Submit verified reports
+                  and resolve AI alerts to
+                  unlock achievements.
                 </p>
               </CardContent>
             </Card>

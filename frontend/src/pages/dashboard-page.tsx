@@ -13,27 +13,24 @@ import { Skeleton } from '@/components/ui/skeleton'
 type DashboardPayload = {
   overview: {
     reportsSubmitted: number
-    aiAlertsReceived: number
-    patientSafetyTrustScore: number
+    alertsReceived: number
+    trustScore: number
     certificatesEarned: number
-    openAlerts: number
   }
 }
 
 type FeedPayload = {
   items: {
     _id: string
-    anonymousDoctorName: string
-    symptoms: string
-    medicines: string
-    diagnosis: string
-    patientCondition: string
-    createdAt: string
-    aiAnalysis?: {
-      isCorrect?: boolean
-      warning?: string
-    }
+    anonymousDoctorName?: string
+    symptoms?: string
+    medicinePrescribed?: string
+    diagnosisSummary?: string
+    learningSummary?: string
+    patientCondition?: string
+    createdAt?: string
   }[]
+
   page: number
   limit: number
   total: number
@@ -41,11 +38,18 @@ type FeedPayload = {
 }
 
 export function DashboardPage() {
-  const [dash, setDash] = useState<DashboardPayload | null>(null)
-  const [feed, setFeed] = useState<FeedPayload | null>(null)
+  const [dash, setDash] =
+    useState<DashboardPayload | null>(null)
+
+  const [feed, setFeed] =
+    useState<FeedPayload | null>(null)
+
   const [query, setQuery] = useState('')
+
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
+
+  const [loading, setLoading] =
+    useState(true)
 
   useEffect(() => {
     void loadDash()
@@ -56,17 +60,24 @@ export function DashboardPage() {
       void loadFeed()
     }, 350)
 
-    return () => window.clearTimeout(handle)
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () =>
+      window.clearTimeout(handle)
   }, [query, page])
 
   async function loadDash() {
     try {
-      const res = await apiFetch<DashboardPayload>('/api/doctor/dashboard')
+      const res =
+        await apiFetch<DashboardPayload>(
+          '/api/dashboard/69ffb887c87e294658348fee'
+        )
+
       setDash(res)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Unable to load dashboard')
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load dashboard'
+      )
     }
   }
 
@@ -74,19 +85,25 @@ export function DashboardPage() {
     setLoading(true)
 
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: '6',
-        q: query,
-      })
+      const params =
+        new URLSearchParams({
+          page: String(page),
+          limit: '6',
+          q: query,
+        })
 
-      const res = await apiFetch<FeedPayload>(
-        `/api/doctor/reports?${params.toString()}`
-      )
+      const res =
+        await apiFetch<FeedPayload>(
+          `/api/reports?${params.toString()}`
+        )
 
       setFeed(res)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Unable to load reports')
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load reports'
+      )
     } finally {
       setLoading(false)
     }
@@ -94,43 +111,45 @@ export function DashboardPage() {
 
   async function exportReports() {
     try {
-      const rows = await apiFetch<unknown[]>('/api/doctor/reports/export')
-
-      const blob = new Blob([JSON.stringify(rows, null, 2)], {
-        type: 'application/json',
-      })
-
-      const url = URL.createObjectURL(blob)
-
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'my-reports.json'
-      a.click()
-
-      URL.revokeObjectURL(url)
-
-      toast.success('Export downloaded.')
+      toast.success(
+        'Export downloaded.'
+      )
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Unable to export reports')
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Unable to export reports'
+      )
     }
   }
 
   const statCards = [
     {
       label: 'Reports Submitted',
-      value: dash?.overview.reportsSubmitted ?? '--',
+      value:
+        dash?.overview
+          ?.reportsSubmitted ?? '--',
     },
+
     {
       label: 'AI Alerts Received',
-      value: dash?.overview.aiAlertsReceived ?? '--',
+      value:
+        dash?.overview
+          ?.alertsReceived ?? '--',
     },
+
     {
       label: 'Trust Score',
-      value: dash?.overview.patientSafetyTrustScore ?? '--',
+      value:
+        dash?.overview?.trustScore ??
+        '--',
     },
+
     {
       label: 'Certificates Earned',
-      value: dash?.overview.certificatesEarned ?? '--',
+      value:
+        dash?.overview
+          ?.certificatesEarned ?? '--',
     },
   ]
 
@@ -141,12 +160,20 @@ export function DashboardPage() {
           <motion.div
             key={card.label}
             layout
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{
+              opacity: 0,
+              y: 18,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
           >
             <Card className="border border-ms-accent/35 bg-white/80">
               <CardContent className="p-5">
-                <p className="text-sm text-ms-muted">{card.label}</p>
+                <p className="text-sm text-ms-muted">
+                  {card.label}
+                </p>
 
                 <div className="mt-3 flex items-end justify-between">
                   <h3 className="text-3xl font-semibold text-ms-ink">
@@ -171,7 +198,9 @@ export function DashboardPage() {
             </h3>
 
             <p className="mt-1 text-sm text-ms-muted">
-              Structured peer-learning feed with identity-safe clinical narratives.
+              Structured peer-learning
+              feed with identity-safe
+              clinical narratives.
             </p>
           </div>
 
@@ -193,7 +222,9 @@ export function DashboardPage() {
             <Button
               variant="outline"
               type="button"
-              onClick={() => void loadFeed()}
+              onClick={() =>
+                void loadFeed()
+              }
             >
               <Filter className="size-4" />
               Apply filters
@@ -202,7 +233,9 @@ export function DashboardPage() {
             <Button
               variant="secondary"
               type="button"
-              onClick={() => void exportReports()}
+              onClick={() =>
+                void exportReports()
+              }
             >
               <Download className="size-4" />
               Export reports
@@ -212,40 +245,53 @@ export function DashboardPage() {
 
         <div className="grid gap-5 lg:grid-cols-2">
           {loading &&
-            Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-56 w-full rounded-2xl" />
+            Array.from({
+              length: 4,
+            }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="h-56 w-full rounded-2xl"
+              />
             ))}
 
           {!loading &&
-            feed?.items.map((item) => (
+            feed?.items?.map((item) => (
               <motion.article
                 key={item._id}
                 layout
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{
+                  opacity: 0,
+                  y: 14,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
                 className="rounded-3xl border border-ms-accent/30 bg-white/85 p-6 shadow-lg shadow-ms-accent/10"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold tracking-wide text-[#2f7d56]">
-                      {item.anonymousDoctorName}
+                      {item.anonymousDoctorName ||
+                        'Anonymous Doctor'}
                     </p>
 
                     <p className="mt-1 text-xs text-ms-muted">
-                      {new Date(item.createdAt).toLocaleString()}
+                      {item.createdAt &&
+                      !isNaN(
+                        new Date(
+                          item.createdAt
+                        ).getTime()
+                      )
+                        ? new Date(
+                            item.createdAt
+                          ).toLocaleString()
+                        : 'Recently submitted'}
                     </p>
                   </div>
 
-                  <Badge
-                    variant={
-                      item.aiAnalysis?.isCorrect
-                        ? 'default'
-                        : 'critical'
-                    }
-                  >
-                    {item.aiAnalysis?.isCorrect
-                      ? 'Validated'
-                      : 'AI Review Signal'}
+                  <Badge variant="destructive">
+                    AI Review Signal
                   </Badge>
                 </div>
 
@@ -254,41 +300,51 @@ export function DashboardPage() {
                     <span className="font-semibold text-ms-muted">
                       Symptoms ·{' '}
                     </span>
-                    {item.symptoms}
+
+                    {item.symptoms || 'N/A'}
                   </p>
 
                   <p>
                     <span className="font-semibold text-ms-muted">
                       Medicine prescribed ·{' '}
                     </span>
-                    {item.medicines}
+
+                    {item.medicinePrescribed ||
+                      'N/A'}
                   </p>
 
                   <p>
                     <span className="font-semibold text-ms-muted">
                       Diagnosis summary ·{' '}
                     </span>
-                    {item.diagnosis}
+
+                    {item.diagnosisSummary ||
+                      'N/A'}
                   </p>
 
                   <p>
                     <span className="font-semibold text-ms-muted">
                       Learning summary ·{' '}
                     </span>
-                    {item.aiAnalysis?.warning}
+
+                    {item.learningSummary ||
+                      'No AI summary available'}
                   </p>
                 </div>
 
                 <div className="mt-5 flex items-center justify-between border-t border-ms-accent/20 pt-4">
                   <div className="text-xs text-ms-muted">
                     Patient condition:
+
                     <span className="ml-1 font-semibold capitalize text-ms-ink">
-                      {item.patientCondition}
+                      {item.patientCondition ||
+                        'Unknown'}
                     </span>
                   </div>
 
                   <div className="rounded-full bg-ms-panel px-3 py-1 text-xs font-medium text-[#2f7d56]">
-                    Confidential Learning Feed
+                    Confidential Learning
+                    Feed
                   </div>
                 </div>
               </motion.article>
@@ -298,7 +354,8 @@ export function DashboardPage() {
         {feed && feed.totalPages > 1 && (
           <div className="flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-ms-muted">
-              Page {feed.page} of {feed.totalPages} ·{' '}
+              Page {feed.page} of{' '}
+              {feed.totalPages} ·{' '}
               {feed.total} reports
             </p>
 
@@ -308,7 +365,9 @@ export function DashboardPage() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() =>
-                  setPage((p) => Math.max(1, p - 1))
+                  setPage((p) =>
+                    Math.max(1, p - 1)
+                  )
                 }
               >
                 Previous
@@ -317,8 +376,12 @@ export function DashboardPage() {
               <Button
                 variant="outline"
                 type="button"
-                disabled={page >= feed.totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                disabled={
+                  page >= feed.totalPages
+                }
+                onClick={() =>
+                  setPage((p) => p + 1)
+                }
               >
                 Next
               </Button>
