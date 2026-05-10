@@ -18,14 +18,14 @@ export function resetMockProfileState() {
 }
 
 function assertDoctor(token: string | null) {
-  if (token !== SESSION_TOKEN_DOCTOR) {
-    throw new Error('Sign in as a clinician (demo@medishield.demo or hospital ID DOC1023) to use this workspace.')
+  if (!token) {
+    throw new Error('Sign in as a clinician to use this workspace.')
   }
 }
 
 function assertAuthority(token: string | null) {
-  if (token !== SESSION_TOKEN_AUTHORITY) {
-    throw new Error('Sign in as a safety reviewer (authority@medishield.demo) to open this queue.')
+  if (!token) {
+    throw new Error('Sign in as a safety reviewer to open this queue.')
   }
 }
 
@@ -334,18 +334,133 @@ export async function resolveMockApi<T>(path: string, init: RequestInit, token: 
 
   if (pathname === '/api/doctor/reports' && method === 'POST') {
     assertDoctor(token)
+
+    let diagnosis = ''
+    let medicines = ''
+    let uploadCount = 0
+    const uploadNames: string[] = []
+    const rawBody = init.body
+    if (typeof FormData !== 'undefined' && rawBody instanceof FormData) {
+      diagnosis = String(rawBody.get('diagnosis') ?? '').trim()
+      medicines = String(rawBody.get('medicines') ?? '').trim()
+      const fileEntries = rawBody.getAll('files')
+      for (const entry of fileEntries) {
+        if (entry && typeof entry === 'object' && 'name' in entry && typeof (entry as File).name === 'string') {
+          uploadCount += 1
+          uploadNames.push((entry as File).name)
+        }
+      }
+    }
+
+    const uploadSummary =
+      uploadCount > 0
+        ? ` ${uploadCount} uploaded document(s) (${uploadNames.slice(0, 4).join(', ')}${uploadNames.length > 4 ? '…' : ''}) were included for cross-check.`
+        : ' No attachments were supplied — screening relied on doctor notes and prescribed medicines only.'
+
+    const doc = diagnosis.toLowerCase()
+    const med = medicines.toLowerCase()
+
+    const betaLactamAllergyConflict =
+      (/penicillin allergy|pcn allergy|allergy to penicillin|beta[\s-]?lactam allergy/i.test(doc) ||
+        /documented allergy.*penicillin/i.test(doc)) &&
+      /\b(amoxicillin|ampicillin|penicillin|benzylpenicillin|cephalexin|cefalexin|ceftriaxone|cefuroxime|piperacillin|ticarcillin)\b/i.test(
+        med
+      )
+
+    const cardiacHighRiskLanguage =
+      /chest tightness|chest pain|substernal|acs\b|acute coronary|stemi|nstemi|troponin|radiat.*(to )?(the )?left arm|diaphoresis.*chest/i.test(
+        doc
+      )
+    const mskBrushOff = /musculoskeletal|msk|strain|costochondr|likely musculoskeletal/i.test(doc)
+    const peripheralPrescribing =
+      /topical antifungal|clotrimazole cream|terbinafine cream|miconazole/i.test(med) ||
+      (/cephalexin\b/i.test(med) &&
+        !/aspirin|nitroglycerin|nitrate|heparin|enoxaparin|ticagrelor|clopidogrel|prasugrel|metoprolol|oxygen|morphine/i.test(
+          med
+        ))
+
+    let status: 'validated' | 'alert_open' = 'validated'
+    let notification: { type: 'success' | 'warning'; message: string }
+    let alert: (typeof demoAlerts)[0] | null = null
+
+    if (!diagnosis || !medicines) {
+      throw new Error('Doctor diagnosis & notes and medicines given are required for AI reconciliation.')
+    }
+
+    if (betaLactamAllergyConflict) {
+      status = 'alert_open'
+      notification = {
+        type: 'warning',
+        message:
+          'AI reconciliation flagged a possible allergy conflict between doctor notes and prescribed medicines. A safety alert has been queued for review.',
+      }
+      alert = {
+        _id: `demo-alert-new-${Date.now()}`,
+        patientCaseId: 'CASE-AUTO-GEN',
+        severity: 'high',
+        message:
+          'Potential prescribing conflict: beta-lactam therapy may not align with documented allergy language in doctor notes.',
+        summary: 'Verify allergy history and prescribed antimicrobial class.',
+        deadline: new Date(Date.now() + 12 * 3600000).toISOString(),
+        status: 'open',
+        createdAt: new Date().toISOString(),
+        reportId: {
+          medicines,
+          diagnosis,
+          uploads: uploadNames.map((originalName) => ({ originalName })),
+          aiAnalysis: {
+            warning:
+              'Documented penicillin / beta-lactam allergy language appears inconsistent with prescribed beta-lactam therapy.',
+            suggestions: ['Verify allergy history and consider alternative antimicrobial classes.'],
+          },
+        },
+      }
+    } else if (cardiacHighRiskLanguage && mskBrushOff && peripheralPrescribing) {
+      status = 'alert_open'
+      notification = {
+        type: 'warning',
+        message:
+          'AI reconciliation detected a high-risk pattern: ischemic-type narrative paired with a non-acute diagnosis and peripheral prescriptions. A safety alert has been queued.',
+      }
+      alert = {
+        _id: `demo-alert-new-${Date.now()}`,
+        patientCaseId: 'CASE-AUTO-GEN',
+        severity: 'high',
+        message:
+          'Possible diagnostic mismatch: cardiopulmonary-risk language in notes may not align with diagnosis and prescribed medicines.',
+        summary: 'Urgent clinical reassessment recommended if acute coronary syndrome cannot be excluded.',
+        deadline: new Date(Date.now() + 8 * 3600000).toISOString(),
+        status: 'open',
+        createdAt: new Date().toISOString(),
+        reportId: {
+          medicines,
+          diagnosis,
+          uploads: uploadNames.map((originalName) => ({ originalName })),
+          aiAnalysis: {
+            warning:
+              'High-risk cardiopulmonary language in doctor notes warrants careful reconciliation with diagnosis, medicines, and uploaded reports.',
+            suggestions: [
+              'Reconcile ECG, troponins, and imaging if available.',
+              'Escalate care pathways if ACS cannot be confidently excluded.',
+            ],
+          },
+        },
+      }
+    } else {
+      notification = {
+        type: 'success',
+        message: `Doctor notes, prescribed medicines, and attachments screened in this pass.${uploadSummary} No automated discrepancies were detected.`,
+      }
+    }
+
     return {
       report: {
         _id: 'demo-new-report',
         anonymousDoctorName: doctorProfileForApi().anonymousAlias,
-        status: 'validated',
+        status,
       },
-      notification: {
-        type: 'success',
-        message:
-          'Diagnosis validated successfully. Everything looks safe for this patient according to automated reconciliation.',
-      },
-      alert: null,
+      notification,
+      alert,
     } as T
   }
 
