@@ -12,14 +12,34 @@ const AlertSchema = new mongoose.Schema(
       required: true,
     },
 
+    title: {
+      type: String,
+      default: '',
+    },
+
     message: {
       type: String,
       required: true,
     },
 
+    reasoning: {
+      type: String,
+      default: '',
+    },
+
     recommendation: {
       type: String,
       required: true,
+    },
+
+    confidenceScore: {
+      type: Number,
+      default: 0,
+    },
+
+    requiresReview: {
+      type: Boolean,
+      default: true,
     },
 
     countdown: {

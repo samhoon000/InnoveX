@@ -2,24 +2,12 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const protect = require('../middleware/protect');
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'very_secret_key';
-
-// Middleware to protect /me route
-const protect = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Not authorized' });
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ error: 'Token failed' });
-  }
-};
+const JWT_SECRET =
+  process.env.JWT_SECRET || 'very_secret_key';
 
 // Register
 router.post('/register', async (req, res) => {

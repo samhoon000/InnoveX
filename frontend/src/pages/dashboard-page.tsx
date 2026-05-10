@@ -4,7 +4,6 @@ import { Download, Filter, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { apiFetch } from '@/lib/api'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -132,13 +131,6 @@ export function DashboardPage() {
     },
 
     {
-      label: 'AI Alerts Received',
-      value:
-        dash?.overview
-          ?.alertsReceived ?? '--',
-    },
-
-    {
       label: 'Trust Score',
       value:
         dash?.overview?.trustScore ??
@@ -155,7 +147,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {statCards.map((card) => (
           <motion.div
             key={card.label}
@@ -289,10 +281,6 @@ export function DashboardPage() {
                         : 'Recently submitted'}
                     </p>
                   </div>
-
-                  <Badge variant="destructive">
-                    AI Review Signal
-                  </Badge>
                 </div>
 
                 <div className="mt-5 space-y-3 text-sm leading-relaxed">

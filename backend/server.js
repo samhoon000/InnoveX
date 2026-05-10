@@ -1,4 +1,18 @@
-require('dotenv').config();
+const path = require('path');
+const loadEnvFromFile = require('./lib/load-env-from-file');
+
+const envPath = path.join(__dirname, '.env');
+loadEnvFromFile(envPath);
+
+require('dotenv').config({
+  path: envPath,
+  override: false,
+});
+
+console.log(
+  'Groq key loaded:',
+  !!process.env.GROQ_API_KEY
+);
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -8,6 +22,7 @@ const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const alertRoutes = require('./routes/alerts');
 const reportRoutes = require('./routes/reports');
+const doctorReportRoutes = require('./routes/doctor-reports');
 
 const app = express();
 
@@ -38,8 +53,12 @@ app.use('/api/dashboard', dashboardRoutes);
 
 app.use('/api/alerts', alertRoutes);
 
-// NEW REPORT ROUTE
 app.use('/api/reports', reportRoutes);
+
+app.use(
+  '/api/doctor/reports',
+  doctorReportRoutes
+);
 
 /* ---------------- Root ---------------- */
 

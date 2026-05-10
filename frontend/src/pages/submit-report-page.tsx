@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mic, Square, UploadCloud } from 'lucide-react'
 import { toast } from 'sonner'
@@ -122,6 +123,7 @@ async function postReportFormData(fd: FormData): Promise<{
 }
 
 export function SubmitReportPage() {
+  const navigate = useNavigate()
   const [medicines, setMedicines] = useState('')
   const [diagnosis, setDiagnosis] = useState('')
   const [files, setFiles] = useState<File[]>([])
@@ -155,6 +157,7 @@ export function SubmitReportPage() {
       setMedicines('')
       setDiagnosis('')
       setFiles([])
+      navigate('/ai-alerts', { replace: true })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Submission failed')
     }
@@ -329,15 +332,15 @@ export function SubmitReportPage() {
                 onDrop={onDrop}
               >
                 <UploadCloud className="mx-auto size-10 text-[#2f7d56]" />
-                <p className="mt-4 text-sm font-semibold text-ms-ink">Drag imaging, labs, PDFs, DOCX packets</p>
-                <p className="text-xs text-ms-muted">Accepted · PDF · PNG · JPG · DOCX · ≤15MB each</p>
+                <p className="mt-4 text-sm font-semibold text-ms-ink">Drag labs or narrative reports (PDF / TXT)</p>
+                <p className="text-xs text-ms-muted">Accepted · PDF · TXT · ≤15MB each</p>
                 <input
                   type="file"
                   multiple
                   className="mt-4"
-                  accept=".pdf,.png,.jpg,.jpeg,.docx"
+                  accept=".pdf,.txt"
                   onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
-                  aria-label="Upload imaging, labs, PDFs, or DOCX packets"
+                  aria-label="Upload PDF or plain-text medical reports"
                 />
                 {files.length > 0 && (
                   <ul className="mt-4 space-y-1 text-left text-xs text-ms-muted">

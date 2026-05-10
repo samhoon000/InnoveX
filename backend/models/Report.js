@@ -17,6 +17,18 @@ const ReportSchema = new mongoose.Schema(
     status: String,
 
     confidentialityTag: String,
+
+    uploads: [
+      {
+        originalName: String,
+        mimeType: String,
+      },
+    ],
+
+    extractedMedicalText: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

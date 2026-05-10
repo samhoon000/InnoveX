@@ -19,9 +19,11 @@ router.get('/', async (req, res) => {
       query.severity = severity;
     }
 
-    const alerts = await Alert.find(query).sort({
-      createdAt: -1,
-    });
+    const alerts = await Alert.find(query)
+      .populate('reportId')
+      .sort({
+        createdAt: -1,
+      });
 
     console.log(
       'FOUND ALERTS:',

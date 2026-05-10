@@ -34,7 +34,9 @@ type AlertRecord = {
   _id: string
   caseId: string
   severity: string
+  title?: string
   message: string
+  reasoning?: string
   recommendation: string
   countdown: string
 
@@ -80,6 +82,34 @@ export function AiAlertsPage() {
     errorReportSubmitted,
     setErrorReportSubmitted,
   ] = useState(false)
+
+  function severityBadgeProps(sev: string) {
+    const s = sev?.toLowerCase() || ''
+    if (s === 'high') {
+      return {
+        variant: 'critical' as const,
+        className: '',
+      }
+    }
+    if (s === 'medium') {
+      return {
+        variant: 'outline' as const,
+        className:
+          'border-amber-200 bg-amber-50 text-amber-900',
+      }
+    }
+    if (s === 'low') {
+      return {
+        variant: 'outline' as const,
+        className:
+          'border-yellow-200 bg-yellow-50 text-yellow-900',
+      }
+    }
+    return {
+      variant: 'outline' as const,
+      className: '',
+    }
+  }
 
   const severityFilterOptions = useMemo(
     () => [
@@ -225,7 +255,11 @@ export function AiAlertsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {alerts.map((alert) => (
+        {alerts.map((alert) => {
+          const sevStyle = severityBadgeProps(
+            alert.severity
+          )
+          return (
           <motion.div
             key={alert._id}
             layout
@@ -242,14 +276,32 @@ export function AiAlertsPage() {
                 </p>
               </div>
 
-              <Badge variant="destructive">
+              <Badge
+                variant={sevStyle.variant}
+                className={sevStyle.className}
+              >
                 {alert.severity}
               </Badge>
             </div>
 
+            {alert.title?.trim() ? (
+              <p className="mt-3 text-sm font-semibold text-ms-ink">
+                {alert.title}
+              </p>
+            ) : null}
+
             <p className="mt-4 text-sm text-ms-ink">
               {alert.message}
             </p>
+
+            {alert.reasoning?.trim() ? (
+              <p className="mt-3 text-xs leading-relaxed text-ms-muted">
+                <span className="font-semibold text-ms-ink">
+                  Reasoning ·{' '}
+                </span>
+                {alert.reasoning}
+              </p>
+            ) : null}
 
             <p className="mt-2 text-xs text-ms-muted">
               {alert.recommendation}
@@ -284,7 +336,7 @@ export function AiAlertsPage() {
               Open confidential workflow
             </Button>
           </motion.div>
-        ))}
+        )})}
       </div>
 
       <Dialog
