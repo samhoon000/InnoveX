@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: medishield-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22.11.0
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MEDISHIELD_LLM_PROVIDER
+        value: groq
+      - key: MEDISHIELD_ANALYST_MODEL
+        value: llama-3.3-70b-versatile
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

@@ -1,8 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "MediShield AI Express API (Render)",
+  "main": "server.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",

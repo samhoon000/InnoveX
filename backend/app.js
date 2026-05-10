@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 
 const { connectToDatabase } = require('./lib/db');
+const { makeCorsOptions } = require('./lib/cors-config');
 
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
@@ -15,9 +16,17 @@ const app = express();
 
 /* ---------------- Middleware ---------------- */
 
-app.use(cors());
+const corsOptions = makeCorsOptions();
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json({ limit: '2mb' }));
+
+/* ---------------- Health check ---------------- */
+
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 /* -------- Ensure DB on every request -------- */
 

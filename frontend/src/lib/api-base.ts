@@ -1,13 +1,15 @@
 /**
  * Resolves the API origin used by `fetch` calls.
  *
- *  - In production (Vercel) we call the same origin so we set this to ''.
- *    e.g. fetch('/api/auth/me') → https://<your-app>.vercel.app/api/auth/me
+ *  - In production (Vercel) set VITE_API_URL to the deployed Render URL,
+ *    e.g. https://medishield-api.onrender.com
  *
- *  - In local dev set VITE_API_BASE=http://localhost:5000 in
- *    `frontend/.env.local` (or `frontend/.env`) so the Vite dev server
- *    talks to the Express backend running on port 5000.
+ *  - In local dev set VITE_API_URL=http://localhost:5000 in
+ *    `frontend/.env.local` so the Vite dev server talks to the
+ *    Express backend running on port 5000.
+ *
+ *  - If unset, falls back to same-origin (empty string).
  */
 export const API_BASE: string =
-  (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, '') ??
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ??
   ''

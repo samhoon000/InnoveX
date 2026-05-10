@@ -1,127 +1,210 @@
-# Deploying MediShield AI to Vercel
+# Deploying MediShield AI
 
-This repo deploys as a **single Vercel project**:
+Two services, two providers:
 
-- The Vite SPA (`frontend/`) is built to static assets and served from the CDN.
-- The Express backend (`backend/`) runs as one Vercel Node Function exposed at `/api/*` via `api/index.js`.
+| Service | Provider | Folder | Public URL example |
+| ------- | -------- | ------ | ------------------ |
+| Vite SPA (frontend) | **Vercel** | `frontend/` | `https://medishield.vercel.app` |
+| Express API (backend) | **Render** | `backend/` | `https://medishield-api.onrender.com` |
 
-The frontend therefore calls the API on the **same origin** in production — no CORS headaches and no separate deploy.
+The SPA calls the API by URL set in `VITE_API_URL`. CORS on the API
+is configured to allow your Vercel domain (and any `*.vercel.app`
+preview URL by default).
 
 ```
-+-------------------+         +-------------------------------+
-|   Browser (SPA)   |  fetch  |  /api/*  →  api/index.js      |
-|  Vite static CDN  | ──────► |  (Express app from backend/)  |
-+-------------------+         +-------------------------------+
-                                          │
-                                          ▼
-                                 MongoDB Atlas / Groq API
++-----------------------+         +---------------------------+
+|  Browser → Vercel CDN |  fetch  |  Render Web Service       |
+|  (Vite SPA, dist/)    | ──────► |  Express + Mongoose +     |
++-----------------------+         |  pdf-parse + Groq         |
+                                  +---------------------------+
+                                              │
+                                              ▼
+                                MongoDB Atlas / Groq API
 ```
 
 ---
 
-## 1. One-time setup
+## 0. Before you deploy: get your secrets
 
-### Required environment variables
+| Secret | Where to get it |
+| ------ | --------------- |
+| `MONGO_URI` | MongoDB Atlas → cluster → **Connect** → **Drivers** → copy `mongodb+srv://...` and substitute the password |
+| `GROQ_API_KEY` | https://console.groq.com/keys → **Create API Key** |
+| `JWT_SECRET` | `openssl rand -hex 64` (any 64+ char random string) |
 
-Set these in **Vercel → Project → Settings → Environment Variables**
-(scope: Production + Preview + Development):
+In **MongoDB Atlas → Network Access** add `0.0.0.0/0` to the IP allow‑list
+(simplest) so Render's containers can reach the cluster.
 
-| Variable                    | Required | Notes                                                       |
-| --------------------------- | -------- | ----------------------------------------------------------- |
-| `MONGO_URI`                 | yes      | MongoDB Atlas connection string                             |
-| `JWT_SECRET`                | yes      | Long random string. Generate: `openssl rand -hex 64`        |
-| `GROQ_API_KEY`              | yes      | `gsk_...` from https://console.groq.com/keys                |
-| `MEDISHIELD_LLM_PROVIDER`   | optional | Defaults are fine (`groq`)                                  |
-| `MEDISHIELD_ANALYST_MODEL`  | optional | Defaults to `llama-3.3-70b-versatile`                       |
-
-> **Do NOT** set `VITE_API_BASE` in Vercel. Leaving it unset makes the
-> SPA call the same origin (`/api/...`), which is what you want.
-
-### MongoDB Atlas network access
-
-Atlas blocks unknown IPs by default. Either:
-
-1. Add `0.0.0.0/0` to the cluster's IP allow-list (simplest), **or**
-2. Use Atlas + Vercel's [private networking peering](https://www.mongodb.com/docs/atlas/security-vpc-peering/).
-
----
-
-## 2. Deploy
-
-### Via the Vercel dashboard
-
-1. **Import the GitHub repo** at https://vercel.com/new.
-2. Vercel reads `vercel.json` automatically — keep all framework / build / output fields **unchanged**.
-3. Add the environment variables above.
-4. **Deploy**.
-
-### Via the Vercel CLI
+Push your latest code to GitHub:
 
 ```bash
-npm i -g vercel
-vercel link            # link to a Vercel project
-vercel env pull        # optional: pull env vars locally
-vercel --prod          # deploy to production
+git add .
+git commit -m "Production-ready: Vercel frontend + Render backend"
+git push
 ```
 
 ---
 
-## 3. Local development
+## Part 1 — Deploy the backend to Render
 
-Two terminals, same as before:
+### Option A — One‑click via `render.yaml` (recommended)
+
+1. Go to https://dashboard.render.com/blueprints → **New Blueprint Instance**.
+2. Connect your GitHub repo. Render reads `render.yaml` automatically.
+3. When prompted, fill in the secret values for:
+   - `MONGO_URI`
+   - `JWT_SECRET`
+   - `GROQ_API_KEY`
+   - `CORS_ORIGINS` — set to your Vercel URL once you have it (e.g. `https://medishield.vercel.app`). You can leave it blank for now and update later; `*.vercel.app` is allowed by default.
+   - `FRONTEND_URL` — same value as above, optional.
+4. Click **Apply** and wait for the build to finish (~2 min).
+5. Copy the live URL Render gives you, e.g. `https://medishield-api.onrender.com`. **You'll need this for Vercel.**
+
+### Option B — Manual setup
+
+1. https://dashboard.render.com → **New → Web Service** → connect the repo.
+2. Configure:
+   | Field | Value |
+   | ----- | ----- |
+   | **Root Directory** | `backend` |
+   | **Runtime** | Node |
+   | **Build Command** | `npm install` |
+   | **Start Command** | `npm start` |
+   | **Health Check Path** | `/healthz` |
+3. Add the same env vars listed above (Settings → Environment), plus:
+   - `NODE_VERSION` = `22.11.0`
+   - `NODE_ENV` = `production`
+   - `MEDISHIELD_LLM_PROVIDER` = `groq`
+   - `MEDISHIELD_ANALYST_MODEL` = `llama-3.3-70b-versatile`
+4. **Create Web Service**. Copy the live URL when it's done.
+
+### Verify
+
+Open `https://<your-api>.onrender.com/healthz` → should return `{"status":"ok"}`.
+Open `https://<your-api>.onrender.com/` → should return `{"message":"MediShield AI Backend Running"}`.
+
+In **Logs** you should see `Groq key loaded: true` and `Server running on port 10000` (Render injects its own `PORT`).
+
+---
+
+## Part 2 — Deploy the frontend to Vercel
+
+1. Go to https://vercel.com/new → import the same GitHub repo.
+2. **Important configuration:**
+   | Field | Value |
+   | ----- | ----- |
+   | **Root Directory** | `frontend` |
+   | **Framework Preset** | Vite |
+   | **Build Command** | (auto, from `vercel.json`) `npm run build` |
+   | **Output Directory** | (auto) `dist` |
+   | **Install Command** | (auto) `npm install` |
+   | **Node.js Version** | 22.x (auto-picked from `engines`) |
+3. Add **one** environment variable (Production + Preview + Development):
+   | Name | Value |
+   | ---- | ----- |
+   | `VITE_API_URL` | The Render URL from Part 1, e.g. `https://medishield-api.onrender.com` (no trailing slash) |
+4. Click **Deploy**. ~1 min later you'll get a URL like `https://medishield.vercel.app`.
+
+### Wire CORS back to Vercel
+
+Now that you have the Vercel URL, go back to Render → your service →
+**Environment** and set:
+
+```
+CORS_ORIGINS = https://medishield.vercel.app
+FRONTEND_URL = https://medishield.vercel.app
+```
+
+Save → Render auto-redeploys. (You can skip this — `*.vercel.app` is
+already whitelisted by default — but setting it explicitly is safer for
+production.)
+
+### Verify the full stack
+
+1. Open the Vercel URL.
+2. Sign up / log in.
+3. Submit a doctor report.
+4. Confirm the AI Safety Desk alert appears.
+5. Watch Render's **Logs** tab — you should see the request, the Mongo
+   query, and the Groq call.
+
+---
+
+## Part 3 — Local development
+
+Two terminals, no change from before:
 
 ```bash
-# terminal 1 — Express API on http://localhost:5000
+# Terminal 1 — Express on http://localhost:5000
 npm run dev:backend
 
-# terminal 2 — Vite dev server on http://localhost:5173
+# Terminal 2 — Vite on http://localhost:5173
 npm run dev
 ```
 
-`frontend/.env.local` already contains `VITE_API_BASE=http://localhost:5000`,
-so the local SPA talks to the local Express server. In production this file
-is absent and `VITE_API_BASE` is empty, so the built SPA calls the same Vercel origin.
+Local config:
 
-`backend/.env` provides MongoDB, JWT, and Groq credentials locally. **Do not commit it.**
+- `backend/.env` provides `MONGO_URI`, `JWT_SECRET`, `GROQ_API_KEY`.
+- `frontend/.env.local` already contains `VITE_API_URL=http://localhost:5000`.
 
----
-
-## 4. Vercel limits to be aware of
-
-| Tier   | Function timeout | Request body | Notes                                               |
-| ------ | ---------------- | ------------ | --------------------------------------------------- |
-| Hobby  | 10 s             | 4.5 MB       | Big PDFs (≥4.5 MB) and slow Groq calls may fail     |
-| Pro    | 60 s (configured)| 4.5 MB       | `vercel.json` already requests `maxDuration: 60`    |
-
-This app uses `multer.memoryStorage()` (no disk writes — required by serverless),
-caches the Mongo connection across warm invocations, and uses
-`pdf-parse/lib/pdf-parse.js` directly to avoid a known bundler issue.
+Both files are gitignored.
 
 ---
 
-## 5. Troubleshooting
+## Part 4 — Continuous deployment
 
-| Symptom                                              | Cause / Fix                                                                  |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `503 Database unavailable`                           | `MONGO_URI` missing or Atlas IP allow-list rejects Vercel's egress IP        |
-| `JWT_SECRET is not set`                              | Set `JWT_SECRET` in Vercel env (or set `NODE_ENV != production`)             |
-| Logs show `Groq key loaded: false`                   | Add `GROQ_API_KEY` to Vercel env and redeploy                                |
-| `GROQ_API_KEY missing from .env`                     | Same — env var not present in this Vercel environment                        |
-| `Function execution timed out` on report submit      | Pro tier needed (60 s) for large prompts, or shrink the uploaded PDFs        |
-| 404 on every `/api/*`                                | `vercel.json` rewrite missing — re-deploy with this file at the repo root    |
-| Browser still calling `localhost:5000` in production | `VITE_API_BASE` was set in Vercel env. Remove it and redeploy.               |
+After the first deploy, both providers redeploy on every push to `main`:
+
+```bash
+git add .
+git commit -m "your change"
+git push
+```
+
+- Vercel rebuilds the SPA in ~1 min.
+- Render rebuilds the API in ~2 min (free tier sleeps after inactivity;
+  first request after wake-up can take 30–60 s).
 
 ---
 
-## 6. What was changed for Vercel
+## Part 5 — Why this setup avoids the previous build errors
 
-- `backend/app.js` — Express app extracted from `server.js`, no `.listen()`.
-- `backend/server.js` — local-dev entry only; loads `.env` and calls `.listen()`.
-- `backend/lib/db.js` — cached `mongoose.connect()` for serverless cold starts.
-- `backend/lib/jwt-secret.js` — refuses to start in production without `JWT_SECRET`.
-- `backend/services/document-extractor.js` — safer `pdf-parse` import path.
-- `api/index.js` — Vercel Node Function wrapping the Express app.
-- `vercel.json` — builds the SPA, routes `/api/*` to the function, rewrites SPA paths.
-- `frontend/src/lib/api-base.ts` + edits to `api.ts` and `submit-report-page.tsx` — URL is env-driven.
-- Root `package.json` — `vercel-build` script + `engines.node` + serverless deps.
-- `.vercelignore`, `.gitignore` — keep secrets and dev artifacts out of deploys.
+| Symptom you hit | Root cause | Fix in this repo |
+| --------------- | ---------- | ---------------- |
+| Vercel build failed with rolldown / native binding error | npm bug [#4828](https://github.com/npm/cli/issues/4828) — Windows-built `package-lock.json` doesn't list Linux platform binaries (`@rolldown/binding-linux-x64-gnu`, `@rollup/rollup-linux-x64-gnu`) | Lockfiles deleted from the repo so Vercel/Render generate fresh, Linux-correct ones; `optional=true` in `.npmrc` forces optional native binaries to install |
+| Node.js version mismatch | Vercel was defaulting to Node 24 (which ships unstable Vite/Rolldown bindings) | `engines.node = "22.x"` pinned in root, frontend, and backend `package.json` + `NODE_VERSION = 22.11.0` in `render.yaml` |
+| Workspace path confusion on Vercel | The previous combined-deploy `vercel.json` tried to build the workspace from the repo root | Removed root `vercel.json`. Vercel **Root Directory = `frontend`** plus `frontend/vercel.json` makes Vercel treat the SPA as an isolated Vite project |
+| Frontend calling `localhost:5000` in production | Hardcoded URL | All API calls go through `frontend/src/lib/api-base.ts` which reads `VITE_API_URL` |
+| API calls blocked by CORS in production | `cors()` was wide open in dev but unsafe in prod | `backend/lib/cors-config.js` — env-driven whitelist + automatic `*.vercel.app` allowance |
+
+---
+
+## Part 6 — Troubleshooting
+
+| Symptom | Cause / Fix |
+| ------- | ----------- |
+| `npm error code EBADENGINE` on Vercel | A dependency or repo lists an unsupported Node version. Confirm Vercel project Settings → General → **Node.js Version = 22.x** (it should auto-pick from `engines`) |
+| `Cannot find module @rolldown/binding-linux-x64-gnu` | Stale lockfile cached in Vercel. Settings → General → **Clear Build Cache** → Redeploy |
+| Render build fails: `MONGO_URI is not set` (only on first request) | Add `MONGO_URI` in Render → Environment → Save (Render auto-redeploys) |
+| Render build succeeds but `/healthz` returns 503 | Atlas IP allow-list missing `0.0.0.0/0`, or `MONGO_URI` password contains unescaped `@`/`/` (URL-encode them) |
+| Browser shows `CORS: origin … is not allowed` | Set `CORS_ORIGINS=https://your-frontend.vercel.app` on Render and redeploy |
+| First request after idle is slow | Render free tier sleeps. Either upgrade to a paid plan or accept ~30 s cold starts |
+| `Groq key loaded: false` in Render logs | Add `GROQ_API_KEY` in Render → Environment, redeploy |
+| `JWT_SECRET is not set` | Same — set it in Render env. Backend refuses to start in prod without it |
+
+---
+
+## Part 7 — Quick reference
+
+| Goal | Action |
+| ---- | ------ |
+| Run locally | Terminal 1: `npm run dev:backend` &nbsp; Terminal 2: `npm run dev` |
+| Deploy frontend | `git push` (Vercel auto-builds) |
+| Deploy backend | `git push` (Render auto-builds) |
+| Change frontend env | Vercel → Settings → Environment Variables → Redeploy |
+| Change backend env | Render → service → Environment → Save (auto-redeploys) |
+| Watch backend logs | Render → service → **Logs** |
+| Watch frontend build | Vercel → **Deployments** |
+
+If anything breaks, check Section 6 first — every failure mode I've seen
+during this migration is listed there.
